@@ -19,7 +19,7 @@ different predictors on price.
 -   **Source**: Diamonds Prices 2022 (`Diamonds Prices2022.csv`)
 -   **Size**: \~53,000 observations, 10+ variables
 -   **Variables include**:
-    -   **Carat**: Weight of the diamond\
+    -   **Carat**: Weight of the diamond
     -   **Cut**: Quality of the cut (Fair, Good, Very Good, Premium,
         Ideal)
     -   **Color**: Diamond color grading (D--J)
