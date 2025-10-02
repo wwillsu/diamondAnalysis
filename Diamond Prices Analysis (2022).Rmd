@@ -1,0 +1,296 @@
+---
+title: "Diamond Prices Analysis (2022)"
+author: "William Su"
+date: "2025-06-12"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data Description and Descriptive Statistics
+
+### 1. Select a random sample.
+
+```{r, message=FALSE, warning=FALSE}
+diamonds_df <- read.csv("Diamonds Prices2022.csv")
+
+set.seed(6122025)
+
+library(tidyverse)
+
+# select random sample of at least 1000 observations
+diamonds_sample <- sample_n(diamonds_df, 1000)
+```
+
+### 2. Describe all the variables (call summary function on the dataset, see the structure, create histograms for continuous random variable, comment on their distribution, bar plots for categorical random variable).
+
+```{r}
+# summary function on the dataset
+summary(diamonds_sample)
+
+# see the structure
+head(diamonds_sample)
+```
+
+```{r}
+cont_vars <- c("carat","depth","table","price","x","y","z")
+
+for (var in cont_vars) {
+  hist(diamonds_sample[[var]],
+       main = var,
+       xlab = var)
+}
+```
+
+Carat
+
+* Right-skewed: most diamonds in our sample are under 1 carat, with a long tail stretching past 2 carats.
+
+* Spikes at “round” numbers (0.5, 1.0, etc.), probably due to how dealers often cut to standard weights.
+
+Depth (%)
+
+* Roughly bell-shaped, centered around 61%, with most depths between 59% and 63%.
+
+* Very few extreme flats (<58%) or very deep stones (>65%).
+
+Table (%)
+
+* Also approximately normal, peaked at about 57–59%.
+
+* Tight spread, most tables fall within a narrow 55–61% band.
+
+Price (USD)
+
+* Heavily right-skewed: a cluster under \$4,000, then a long tail out to \$15,000+.
+
+* A few very expensive outliers push the mean above the bulk of the data.
+
+X, Y, Z (mm dimensions)
+
+* Each dimension is right-skewed, with a bulk in the mid-ranges (x: ~5–7 mm; y: ~5–7 mm; z: ~3–4 mm) and fewer very large stones.
+
+* You can see a taller “bar” at the lower end (around 4–5 mm for x and y), again reflecting standard small cuts.
+
+* The z-dimension (height) is a bit more spread out but still clustered around 3.5–4 mm
+
+```{r}
+cat_vars <- c("cut","color","clarity")
+
+for (var in cat_vars) {
+  barplot(table(diamonds_sample[[var]]),
+          main = var,
+          xlab = var)
+}
+```
+
+### 3. Determine if there is any correlation between these variables. 
+
+```{r}
+cor(diamonds_sample[, cont_vars])
+```
+
+The continuous predictors exhibit very high intercorrelation: carat and price correlate at about 0.93, and carat with each of the physical dimensions (x, y, z) at roughly 0.98. Likewise, x, y, and z correlate nearly perfectly with one another ($p \approx 0.99$), and all three also correlate strongly with price ($p \approx 0.89–0.90$). By contrast, depth and table show only weak associations ($|p|<0.33$ with size and price.
+
+### 4. Run the multiple linear regression model using all these variables and observe the summary statistics. (DO NOT EXPLAIN HYPOTHESIS TESTING OR ANYTHING ELSE)
+
+```{r}
+model <- lm(price ~ ., data = diamonds_sample)
+
+summary(model)
+```
+
+Observations: Carat, cut, color, and clarity are the most statistically significant. Other parameters are not as important.
+
+### 5. Comment on anything of interest that occurred in this part. Were the data approximately what you expected, or did some of the results surprise you?
+
+Overall, the diamonds data behaved as expected; most stones are small and inexpensive, so both carat and price are heavily right‐skewed, while depth and table cluster around their “ideal” ranges. Size truly drives value. In our regression, carat dominates with an increase of nearly \$12,000 per carat, clarity adds a substantial premium (roughly \$4,800 from I1 to IF), and depth has a small positive effect. Surprisingly, once carat is accounted for, table and the x-dimension aren’t significant. With an $R^2$ of about 0.93, the model explains most of the variation in price.
+
+## SIMPLE LINEAR REGRESSION
+
+### 1. Start with one predictor and one response from the variables in Part I. For instance, you can start with the predictor ’carat’ and the response ’price’, and conduct a simple linear regression analysis on it.
+
+```{r}
+model1 <- lm(price ~ carat, data = diamonds_sample)
+```
+
+### 2. Run the model and examine the summary statistics, interpreting everything (hypothesis testing, $R^2_{adj}$ as discussed in class, confidence interval, prediction interval, plot, etc.).
+
+```{r}
+summary(model1)
+```
+
+Residuals: five-number summary (Min, 1Q, Median, 3Q, Max) of the errors.
+
+Coefficients: 
+
+* $\hat{\beta_0}$ 
+
+  - Estimate: The price of the diamond is -2430.80 dollars when the diamond's carat is zero.
+  - Std. Error (uncertainty): $\hat{\beta_0}$ is approximately 93.24 deviations away from its true value.
+  - t value: $\hat{\beta_0}$ is -26.07 SE's away from zero.
+  - Pr(>|t|) (p-value): The p-value from testing $H_0$ (null hypothesis): $\hat{\beta_0}$ is < 0.0001.
+
+* $\hat{\beta_1}$ 
+
+  - Estimate: The price of the diamond is 8023.92 dollars when the diamond's carat is zero.
+  - Std. Error (uncertainty): $\hat{\beta_1}$ is approximately 99.86 deviations away from its true value.
+  - t value: $\hat{\beta_1}$ is 80.35 SE's away from zero.
+  - Pr(>|t|) (p-value): The p-value from testing $H_0$ (null hypothesis): $\hat{\beta_1}$ is < 0.0001.
+  
+Hypothesis Testing:
+
+* Partial Significance Test:
+
+  - $\hat{\beta_0}$: p < 0.0001 < $\alpha$ (significance level) $= 0.05 \Rightarrow$ we should not drop $\hat{\beta_0}$ from the model, it is statistically significant.
+  - $\hat{\beta_1}$: p < 0.0001 < $\alpha$ (significance level) $= 0.05 \Rightarrow$ we should not drop $\hat{\beta_1}$ from the model, it is statistically significant.
+  
+$R^2_{adj} = 0.866$: 86.6% of variance in diamond price is explained by carat. There is only one predictor so $R^2_{adj}$ does not punish our model.
+
+```{r}
+confint(model1)
+```
+
+* $\hat{\beta_0}$ 
+
+  - We are 95% confident prices will fall in this interval [$-2430.80-t_{\alpha/2, 998}*93.24$, $-2430.80+t_{\alpha/2, 998}*93.24$] = [-2613.765, -2247.838] when carat = 0.
+  
+* $\hat{\beta_1}$ 
+  - We are 95% confident that each additional carrat increases the average diamond price by some amount in this interval [$8023.92-t_{\alpha/2, 998}*99.86$, $8023.92+t_{\alpha/2, 998}*99.86$] = [7827.964, 8219.880].
+  
+```{r}
+# prediction interval of the sample's mean carat size
+predict(model1, 
+        newdata=data.frame(carat=mean(diamonds_sample$carat)), 
+        interval="prediction",
+        level=0.95)
+```
+
+PI: The average price of a diamond falls in this interval [1111.847, 6964.689].
+
+
+```{r}
+plot(model1)  
+```
+
+Normal Q–Q plot: some points stray from the reference line, suggesting a non-normal distribution.
+
+Residuals vs. fitted: there is an obvious funnel and spread does not look equal, suggesting non-constant variance and non-linearity.
+
+Therefore, we must transform the independent variable.
+
+```{r}
+model2 <- lm(price ~ log(carat), data = diamonds_sample)
+
+plot(model2)
+
+summary(model2)
+```
+
+Normal Q–Q plot: some points stray from the reference line, suggesting a non-normal distribution.
+
+Residuals vs. fitted: again, there is an obvious funnel and spread does not look equal, suggesting non-constant variance and non-linearity.
+
+Summary: $R^2$ decreased which means our model weakened.
+
+Thus, we must transform the dependent variable as well.
+
+```{r}
+model3 <- lm(log(price) ~ log(carat), data = diamonds_sample)
+
+plot(model3)
+
+summary(model3)
+```
+
+Normal Q–Q plot: points stay close to the reference line, suggesting approximate normality.
+
+Residuals vs. fitted: there are no obvious funnels and spread looks equal, suggesting constant variance and linearity.
+
+Summary: $R^2$ increased which means our model strengthened.
+
+In conclusion, our transformed model follows all assumptioms.
+
+### Add other variables to the model and assess if the model improves. For step 5, run the code in the background and include all interpretations in the file. For instance, if adding depth to the simple linear regression model (carat and price) increases the adjusted $R^2$, include it in the model; if it decreases, exclude it. Do not include the code for step 5 in the submitted file; only write the conclusions.
+
+After comparing many versions of the model, we noticed adding predictors increased the adjusted $R^2$ (improved the model's fit). The biggest improvements came from including cut, clarity, and color. Other variables such as depth, table, x, y, and z contributed slightly to the model. In general, adding predictors strengthened the model's fit
+
+### 6. Comment on anything of interest that occurred while doing this part.
+
+To be completely honest, I had no idea how to do the transformation portion. I had to contact a friend for help, but I was very impressed it fixed the problems with the assumptions. I was also intrigued by how all the predictors added something helpful to the model. Prior to the analysis, I thought some of the predictors would be useless.
+
+## PART II continuation...
+
+### 1. In class we saw different techniques and criterion to find best model. You can use any method and technique you prefer (e.g., backward elimination using AIC or stepwise regression using AIC or backward elimination using BIC criterion) to find the best model and document your observations.
+
+```{r}
+model4 <- lm(log(price) ~ log(carat) + cut + color + clarity + depth + table + x + y + z,
+             data = diamonds_sample)
+
+summary(model4)
+```
+
+```{r}
+model_step_AIC <- step(model4, direction="backward")
+
+model_step_AIC
+
+summary(model_step_AIC)
+```
+
+Due to our model's small size, we chose Backward AIC. After running the model, we got an AIC value of -4055.17. Based on the Backward AIC analysis, the variables depth, y, and z were removed, meaning that they were not significant to the model. Looking at the summary post Backward AIC analysis, table is not statistically significant to the model so we removed it.
+
+### 2. Detect multicollinearity among the variables using the variance inflation factor (VIF).
+
+```{r, message=FALSE, warning=FALSE}
+library(car)
+
+model5 <- lm(log(price) ~ log(carat) + cut + color + clarity + x,
+             data = diamonds_sample)
+
+summary(model5)
+```
+
+All predictors are statistically significant to the model.
+
+```{r}
+vif <- vif(model5)
+vif
+```
+
+The VIF shows non-signficant multicollinearity among the variables, confirming that all predictors are significant. We will now check that the model assumptions are valid.
+
+```{r}
+plot(model5)
+```
+
+Normal Q–Q plot: points stay close to the reference line, suggesting approximate normality.
+
+Residuals vs. fitted: there are no obvious funnels and spread looks equal, suggesting constant variance and linearity.
+
+### 3. Give CIs for a mean predicted value and the PIs of a future predicted value for at least one combination of X’s (from your final linear model).
+
+```{r}
+confint(model5, level=.95)
+```
+
+For each predictor, we are 95% sure the true predictor value lies between the 2.5% value and 97.5% value. For example, we are 95% sure the true population parameter log(carat) lies in [1.6158401454, 1.86448104].
+
+```{r}
+predict_df <- data.frame(carat = mean(diamonds_sample$carat),
+                         cut     = factor("Very Good", levels = c("Fair", "Good", "Ideal", "Premium", "Very Good")),
+                         color   = factor("J", levels = c("D", "E", "F", "G", "H", "I", "J")),
+                         clarity = factor("VVS2", levels = c("I1", "SI2", "SI1", "VS2", "VS1", "VVS2", "VVS1", "IF")),
+                         x = mean(diamonds_sample$x))
+
+predict <- predict(model5, predict_df, level = 0.95, interval = "prediction")
+exp(predict)
+```
+
+We are 95% confident that a diamond with carat = 0.80605, cut = Very Good, color = J, clarity = VVS2 will, and x = 5.76242 will cost between \$2219.63 and \$3741.34. 
+
+### 4. Summarize your report (for the final deliverable).
+
+The analysis showed that diamond price is overwhelmingly driven by size, with carat weight exhibiting a strong power‐law relationship to price (log–log $R^2 \approx 0.93$), while quality grades (cut, color, clarity) contribute significant premiums. Exploratory histograms revealed right‐skewed distributions for carat and price, and correlation analysis confirmed tight links among size measures (r > 0.97) and between size and price (r $\approx$ 0.9). A log‐transformed regression model with carat, one physical dimension, and categorical quality predictors achieved an adjusted $R^2$ of 0.983 with minimal multicollinearity. Finally, inference on a typical diamond yielded a 95% prediction interval of \$2,220 – \$3,740.
